@@ -22,6 +22,18 @@ export default class Hello extends React.Component {
             this.personaliseGreeting(data);
         });
     }
+	
+	getPythonData() {
+
+	    var startTime = new Date().getTime();
+
+        $.getJSON(window.location.href + 'data' , (dataArray) => {  //?_id="1";color="red"'
+			var currentTime = new Date().getTime();
+			console.log("Query took " + (currentTime-startTime) + " ms");
+            console.log('Data: ' + dataArray);
+           
+        });
+    }
 
     render () {
         return (
@@ -36,6 +48,9 @@ export default class Hello extends React.Component {
                 <Col md={7} mdOffset={5}>
                     <Button bsSize="large" bsStyle="danger" onClick={this.getPythonHello}>
                     Say Hello!
+                    </Button>
+					<Button bsSize="large" bsStyle="danger" onClick={this.getPythonData}>
+                    Get Data!
                     </Button>
                 </Col>
                 </Row>
