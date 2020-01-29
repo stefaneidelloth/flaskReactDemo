@@ -17,6 +17,11 @@ from pymongo import MongoClient
 
 import time
 
+import sqlite3
+import pandas
+
+from sqlalchemy import create_engine
+
 # import json
 # import ast
 # import imp
@@ -42,7 +47,16 @@ def hello():
 
 @app.route("/data", methods=['GET'])
 def data():
-    return get_data()
+    return get_data_from_mongodb()
+
+
+@app.route("/dataSqLite", methods=['GET'])
+def data_sqlite():
+    return get_data_from_sqlite()
+
+@app.route("/dataMySql", methods=['GET'])
+def data_mysql():
+    return get_data_from_mysql()
 
 
 def get_hello():
@@ -50,7 +64,7 @@ def get_hello():
     return random.choice(greeting_list)
 
 
-def get_data():
+def get_data_from_mongodb():
     # this example is based on
     # https://www.moesif.com/blog/technical/restful/Guide-to-Creating-RESTful-APIs-using-Python-Flask-and-MongoDB/
 
@@ -86,26 +100,118 @@ def get_data():
             current_milli_time = lambda: int(round(time.time() * 1000))
 
             start_time = current_milli_time()
-            document_cursor = collection.find()
+            limit = 10000
+            document_cursor = collection.find().limit(limit)
 
             time_after_query = current_milli_time()
             print('Time for query: ' + str(time_after_query - start_time) + ' ms')
 
             # Return all the records as query string parameters are not available
-            if document_cursor.count() > 0:
-                # Prepare response if the users are found
-
+            count = document_cursor.count()
+            print('Number of records: ' + str(count))
+            if count > 0:
                 documents = jsonify(list(document_cursor))
                 time_after_conversion = current_milli_time()
-                print('Time for conversion: ' + str(time_after_conversion-time_after_query) + ' ms')
+                print('Time for conversion: ' + str(time_after_conversion - time_after_query) + ' ms')
                 return documents
             else:
-                # Return empty array if no users are found
                 return jsonify([])
-    except:
+    except Exception as exception:
+        print(exception)
+        return "", 500
+
+
+def get_data_from_sqlite():
+
+    try:
+        # Call the function to get the query params
+        query_params = parse_query_params(request.query_string)
+        # Check if dictionary is not empty
+        if query_params:
+            #todo
+            foo=1
+
+        else:
+            # Return all the records as query string parameters are not available
+            current_milli_time = lambda: int(round(time.time() * 1000))
+
+            start_time = current_milli_time()
+
+            with sqlite3.connect('./german_data.sqlite') as connection:
+                query = "SELECT * FROM `german_data`"
+                data_frame = pandas.read_sql_query(query, connection)
+                time_after_query = current_milli_time()
+                print('Time for query: ' + str(time_after_query - start_time) + ' ms')
+
+                count = data_frame.shape[0]
+                print('Number of records: ' + str(count))
+                if count > 0:
+                    documents = data_frame.to_json(orient='records')
+                    time_after_conversion = current_milli_time()
+                    print('Time for conversion: ' + str(time_after_conversion - time_after_query) + ' ms')
+                    return documents
+                else:
+                    # Return empty array if no users are found
+                    return jsonify([])
+
+
+    except Exception as exception:
+        print(exception);
         # Error while trying to fetch the resource
         # Add message for debugging purpose
         return "", 500
+
+def get_data_from_mysql():
+
+    try:
+        # Call the function to get the query params
+        query_params = parse_query_params(request.query_string)
+        # Check if dictionary is not empty
+        if query_params:
+            #todo
+            foo=1
+
+        else:
+            # Return all the records as query string parameters are not available
+
+            host = 'dagobah'
+            port = 3366
+            database = 'visualization'
+            username = 'root'
+            password = '*******' #you need to use right password for this to work
+            engine = create_engine(f"mysql://{username}:{password}@{host}:{port}/{database}")
+
+            current_milli_time = lambda: int(round(time.time() * 1000))
+
+            start_time = current_milli_time()
+
+            with engine.connect() as connection:
+                query = "SELECT * FROM `german_data`" + " LIMIT 100000"
+                data_frame = pandas.read_sql_query(query, connection)
+                time_after_query = current_milli_time()
+                print('Time for query: ' + str(time_after_query - start_time) + ' ms')
+
+                count = data_frame.shape[0]
+                print('Number of records: ' + str(count))
+                if count > 0:
+                    documents = data_frame.to_json(orient='records')
+                    time_after_conversion = current_milli_time()
+                    print('Time for conversion: ' + str(time_after_conversion - time_after_query) + ' ms')
+                    return documents
+                else:
+                    # Return empty array if no users are found
+                    return jsonify([])
+
+
+    except Exception as exception:
+        print(exception);
+        # Error while trying to fetch the resource
+        # Add message for debugging purpose
+        return "", 500
+
+
+
+
 
 
 def parse_query_params(query_string):
